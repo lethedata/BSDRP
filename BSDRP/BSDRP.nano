@@ -560,6 +560,11 @@ add_port "net/quagga-bgp-netgen"
 # sysutils/dtrace-toolkit
 add_port "sysutils/dtrace-toolkit"
 
+# Xen Guest Tools
+# Comment out textproc/expat2 and devel/jsoncpp add_port lines above as they will already be added when building xen-guest-tools
+#add_port "sysutils/xen-guest-tools"
+#add_port "sysutils/xe-guest-utilities"
+
 #### End of port list section ####
 
 # Add netrate tools

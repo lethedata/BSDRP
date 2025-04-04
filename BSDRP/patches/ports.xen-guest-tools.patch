@@ -1,0 +1,116 @@
+From 9af20dce560e5e01e457cfdeb5e5132e83ed44bb Mon Sep 17 00:00:00 2001
+From: Echo Nar <echo@lethedata.com>
+Date: Mon, 31 Mar 2025 15:15:56 -0500
+Subject: [PATCH] sysutils/xen-guest-tools: Update to 4.20.0
+
+---
+ sysutils/xen-guest-tools/Makefile                   |  9 +++++----
+ sysutils/xen-guest-tools/distinfo                   |  6 +++---
+ sysutils/xen-guest-tools/files/patch-tools-Makefile | 12 ------------
+ sysutils/xen-guest-tools/files/patch-tools_Makefile | 13 +++++++++++++
+ .../xen-guest-tools/files/patch-xenstored_control.c | 11 -----------
+ 5 files changed, 21 insertions(+), 30 deletions(-)
+ delete mode 100644 sysutils/xen-guest-tools/files/patch-tools-Makefile
+ create mode 100644 sysutils/xen-guest-tools/files/patch-tools_Makefile
+ delete mode 100644 sysutils/xen-guest-tools/files/patch-xenstored_control.c
+
+diff --git a/sysutils/xen-guest-tools/Makefile b/sysutils/xen-guest-tools/Makefile
+index 39b56f725..49f3862bc 100644
+--- a/sysutils/xen-guest-tools/Makefile
++++ b/sysutils/xen-guest-tools/Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	xen-guest-tools
+-PORTVERSION=	4.16.1
+-PORTREVISION=	2
++PORTVERSION=	4.20.0
++PORTREVISION=	1
+ CATEGORIES=	sysutils
+ MASTER_SITES=	https://downloads.xenproject.org/release/xen/${PORTVERSION}/
+ DISTNAME=	xen-${PORTVERSION}
+@@ -31,6 +31,7 @@ CONFIGURE_ENV+=	PYTHON=${PYTHON_CMD} PYTHON_PATH=${PYTHON_CMD}
+ CONFIGURE_ENV+=	APPEND_LIB="${LOCALBASE}/lib"
+ CONFIGURE_ENV+=	CC="${CC}" CFLAGS="${CFLAGS}" CPPFLAGS="${CPPFLAGS}"
+ CONFIGURE_ENV+=	LDFLAGS="${LDFLAGS}"
++CONFIGURE_ENV+= IASL="/usr/sbin/iasl"
+ MAKE_ENV+=	clang=y
+ MAKE_ENV+=	CC="${CC}"
+ MAKE_ENV+=	CFLAGS="${CFLAGS}"
+@@ -65,8 +66,8 @@ post-patch:
+ 
+ do-install:
+ 	${INSTALL_PROGRAM} ${WRKSRC}/tools/misc/xen-detect \
+-		${WRKSRC}/tools/xenstore/xenstore \
+-		${WRKSRC}/tools/xenstore/xenstore-control \
++		${WRKSRC}/tools/xs-clients/xenstore \
++		${WRKSRC}/tools/xs-clients/xenstore-control \
+ 		${STAGEDIR}${PREFIX}/bin/
+ 	${INSTALL_LIB} ${WRKSRC}/tools/libs/store/libxenstore.so.4.0 \
+ 		${WRKSRC}/tools/libs/toolcore/libxentoolcore.so.1.0 \
+diff --git a/sysutils/xen-guest-tools/distinfo b/sysutils/xen-guest-tools/distinfo
+index 2b8d6e09b..06d1036e2 100644
+--- a/sysutils/xen-guest-tools/distinfo
++++ b/sysutils/xen-guest-tools/distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1655136459
+-SHA256 (xen-4.16.1.tar.gz) = cb9fc345f9b1cd724cbb6b7724674db70175183cb9015ec991843f0375e7428a
+-SIZE (xen-4.16.1.tar.gz) = 44964667
++TIMESTAMP = 1743444628
++SHA256 (xen-4.20.0.tar.gz) = 47fc1bd2defe7bb7d86e58dd9b12e52c0f097855ac3e686a43f9091fe76f5319
++SIZE (xen-4.20.0.tar.gz) = 7017793
+diff --git a/sysutils/xen-guest-tools/files/patch-tools-Makefile b/sysutils/xen-guest-tools/files/patch-tools-Makefile
+deleted file mode 100644
+index d397204e9..000000000
+--- a/sysutils/xen-guest-tools/files/patch-tools-Makefile
++++ /dev/null
+@@ -1,12 +0,0 @@
+---- tools/Makefile.orig	2022-04-12 12:21:23 UTC
+-+++ tools/Makefile
+-@@ -51,6 +51,9 @@ CROSS_SYS_ROOT ?= /usr/$(CROSS_COMPILE:-=)/sys-root
+- export CROSS_SYS_ROOT # exported for check/funcs.sh
+- export CROSS_BIN_PATH # exported for cross-install.sh
+- endif
+-+ifeq ($(FREEBSD_PORT),y)
+-+SUBDIRS-y := libs xenstore misc
+-+endif
+- 
+- .PHONY: build all
+- build all: subdirs-all
+diff --git a/sysutils/xen-guest-tools/files/patch-tools_Makefile b/sysutils/xen-guest-tools/files/patch-tools_Makefile
+new file mode 100644
+index 000000000..04f11cb4f
+--- /dev/null
++++ b/sysutils/xen-guest-tools/files/patch-tools_Makefile
+@@ -0,0 +1,13 @@
++--- tools/Makefile.orig	2025-03-31 16:57:40 UTC
+++++ tools/Makefile
++@@ -53,6 +53,10 @@ endif
++ export CROSS_BIN_PATH # exported for cross-install.sh
++ endif
++ 
+++ifeq ($(FREEBSD_PORT),y)
+++SUBDIRS-y := libs xs-clients misc
+++endif
+++
++ .PHONY: build all
++ build all: subdirs-all
++ 
+diff --git a/sysutils/xen-guest-tools/files/patch-xenstored_control.c b/sysutils/xen-guest-tools/files/patch-xenstored_control.c
+deleted file mode 100644
+index 3aec3bbb7..000000000
+--- a/sysutils/xen-guest-tools/files/patch-xenstored_control.c
++++ /dev/null
+@@ -1,11 +0,0 @@
+---- tools/xenstore/xenstored_control.c.orig	2022-04-12 12:21:23 UTC
+-+++ tools/xenstore/xenstored_control.c
+-@@ -537,7 +537,7 @@ static const char *lu_reject_reason(const void *ctx)
+- 			ret = talloc_asprintf(ctx, "%s\nDomain %u: %ld s",
+- 					      ret ? : "Domains with long running transactions:",
+- 					      conn->id,
+--					      now - conn->ta_start_time);
+-+					      (long)(now - conn->ta_start_time));
+- 		}
+- 	}
+- 
+-- 
+2.49.0
+
